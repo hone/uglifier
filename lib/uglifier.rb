@@ -24,11 +24,13 @@ class Uglifier
   # Create new instance of Uglifier with given options
   def initialize(options = {})
     @options = DEFAULTS.merge(options)
-    @node = Node.new do |cxt|
-      @tokenizer = cxt.require("parse-js")["tokenizer"]
-      process = cxt.require("process")
-      process["set_logger"].call(lambda {|m| $stderr.puts m })
-    end
+    @node = Node.new
+    export(@node.require("parse-js"), ["tokenizer", "parse"])
+    process = @node.require("./process")
+    process["set_logger"].call(lambda { |m| $stderr.puts m })
+
+    export(process, ["ast_mangle", "ast_squeeze", "gen_code", "ast_walker"])
+    export(@node.require("squeeze-more"), ["ast_squeeze_more"])
   end
 
   def compile(source)
@@ -49,6 +51,12 @@ class Uglifier
 
   private
 
+  def export(object, properties)
+    properties.each do |property|
+      @node[property] = object[property]
+    end
+  end
+
   def stringify(source)
     if source.respond_to? :read
       source.read
@@ -58,7 +66,7 @@ class Uglifier
   end
 
   def copyright(source)
-    tokens = @tokenizer.call(source, false)
+    tokens = @node["tokenizer"].call(source, false)
     tokens.call.comments_before.inject("") do |copyright, comment|
       copyright + if comment["type"] == "comment1"
         "//" + comment["value"] + "\n"

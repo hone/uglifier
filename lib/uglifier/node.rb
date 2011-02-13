@@ -5,20 +5,34 @@ class Uglifier
     def initialize(*args, &blk)
       @exports = {}
       super(*args, &blk)
+
+      self["require"] = lambda { |r|
+        self.require(File.basename(r, ".js"))
+      }
     end
     def require(file)
-      old = self["exports"]
-      self["exports"] = {}
-      self["require"] = lambda {|r|
-        @exports[File.basename(r, ".js")] || begin
-          @exports[file] = self["exports"] # Prevent circular dependencies
-          self.require(File.basename(r, ".js"))
+      @exports[file] ||= begin
+        @exports[file] = {} # Prevent circular dependencies
+
+        eval(
+          export(
+            File.read(
+              File.join(
+                File.dirname(__FILE__), "..", "..", "vendor", "uglifyjs", "lib", File.basename(file, ".js") + ".js"
+              )
+            )
+          )
+        ).each do |key, value|
+          @exports[file][key] = value
         end
-      }
-      load(File.join(File.dirname(__FILE__), "..", "..", "vendor", "uglifyjs", "lib", File.basename(file, ".js") + ".js"))
-      @exports[file] = self["exports"]
-      self["exports"] = old
-      @exports[file]
+        @exports[file]
+      end
+    end
+
+    private
+
+    def export(source)
+      "(function() { var exports = {};\n #{source}\n return exports; }())"
     end
   end
 end
