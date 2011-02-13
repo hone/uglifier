@@ -11,7 +11,7 @@ class Uglifier
     :seqs => true, # Reduce consecutive statements in blocks into single statement
     :dead_code => true, # Remove dead code (e.g. after return)
     :unsafe => false, # Optimizations known to be unsafe in some situations
-    :copyright => true, # Show copyright message
+    :copyright => false, # Show copyright message
     :beautify => false, # Ouput indented code
     :beautify_options => {
       :indent_level => 4,
@@ -41,7 +41,7 @@ class Uglifier
     else
       ""
     end << generate_code(ast(str))
-  rescue V8::JSError => e
+  rescue Rhino::JavascriptError => e
     raise Error.new(e.message)
   end
 

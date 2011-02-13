@@ -1,18 +1,20 @@
-require "v8"
+require "rhino"
 
 class Uglifier
-  class Node < V8::Context
+  class Node < Rhino::Context
     def initialize(*args, &blk)
       @exports = {}
       super(*args, &blk)
-
+      self.load(File.join(
+        File.dirname(__FILE__), "..", "..", "vendor", "reduce.js"
+      ))
       self["require"] = lambda { |r|
         self.require(File.basename(r, ".js"))
       }
     end
     def require(file)
       @exports[file] ||= begin
-        @exports[file] = {} # Prevent circular dependencies
+        @exports[file] = self.eval("new Object();") # Prevent circular dependencies
 
         eval(
           export(
