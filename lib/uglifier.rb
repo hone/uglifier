@@ -46,7 +46,11 @@ class Uglifier
   # options - Hash of options to override Uglifier::DEFAULTS
   def initialize(options = {})
     @options = DEFAULTS.merge(options)
-    @context = ExecJS.compile(File.open(ES5FallbackPath, "r:UTF-8").read + File.open(SourcePath, "r:UTF-8").read)
+  end
+
+  # lazily load context
+  def context
+    @context ||= ExecJS.compile(File.open(ES5FallbackPath, "r:UTF-8").read + File.open(SourcePath, "r:UTF-8").read)
   end
 
   # Minifies JavaScript code
@@ -92,7 +96,7 @@ class Uglifier
 
     js << "return result;"
 
-    @context.exec js.join("\n")
+    context.exec js.join("\n")
   end
   alias_method :compress, :compile
 
